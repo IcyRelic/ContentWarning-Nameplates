@@ -1,0 +1,95 @@
+﻿using BepInEx;
+using Steamworks;
+using System.Collections.Generic;
+using System.Linq;
+using TMPro;
+using Unity.VisualScripting;
+using UnityEngine;
+
+
+namespace Nameplates
+{
+    [ContentWarningPlugin(ModGuid, ModVersion, true)]
+    [BepInPlugin(ModGuid, ModName, ModVersion)]
+    public class NameplateMod : BaseUnityPlugin
+    {
+        public const string ModGuid = "com.icyrelic.nameplates";
+        public const string ModName = "Nameplates";
+        public const string ModVersion = "1.0.0";
+        
+        private List<Nameplate> nameplates = new List<Nameplate>();
+
+        void Update()
+        {
+            nameplates.ToList().FindAll(x => x.IsDestroyed() || !PlayerHandler.instance.playerAlive.Any(p => x.data.steamId == p.Photon().SteamID())).ForEach(x => DestroyNameplate(x));
+
+            PlayerHandler.instance.playerAlive.FindAll(p => !HasNameplate(p) && !p.IsLocal).ForEach(p => CreateNameplate(p));
+        }
+
+        private bool HasNameplate(Player p) => nameplates.ToList().Any(x => x.data.steamId == p.Photon().SteamID());
+        private void DestroyNameplate(Nameplate np)
+        {
+            if (!np.IsDestroyed())
+                Destroy(np.gameObject);
+
+            nameplates.Remove(np);
+        }
+        private void CreateNameplate(Player p)
+        {
+            GameObject go = new GameObject($"Nameplate-{p.Photon().SteamID()}");
+            NameplateData data = go.AddComponent<NameplateData>();
+            data.player = p;
+            data.steamId = p.Photon().SteamID();
+
+            nameplates.Add(go.AddComponent<Nameplate>());
+        }
+
+    }
+
+    internal class NameplateData : MonoBehaviour
+    {
+        public Player player;
+        public ulong steamId;
+    }
+
+    internal class Nameplate : MonoBehaviour
+    {
+        public TextMeshPro tmp;
+        public NameplateData data;
+
+        void Awake()
+        {
+            data = gameObject.GetComponent<NameplateData>();
+            tmp = this.AddComponent<TextMeshPro>();
+            tmp.fontSize = 1.5f;
+            tmp.color = Color.white;    
+            tmp.alignment = TextAlignmentOptions.Center;
+            gameObject.transform.SetParent(data.player.refs.cameraPos);
+        }
+
+        void Update()
+        {
+            tmp.text = data.player.Photon().NickName;
+
+            Vector3 pos = data.player.refs.cameraPos.position;
+            pos.y += 0.5f;
+
+            tmp.transform.position = pos;
+            tmp.transform.LookAt(MainCamera.instance.Camera().transform);
+            tmp.transform.Rotate(Vector3.up, 180f);
+        }
+    }
+
+    internal static class Extensions
+    {
+        internal static Photon.Realtime.Player Photon(this Player player) => player.refs.view.Owner;
+        internal static Camera Camera(this MainCamera camera) => camera.GetComponent<Camera>();
+
+        internal static ulong SteamID(this Photon.Realtime.Player player)
+        {
+            SteamAvatarHandler.TryGetSteamIDForPlayer(player, out CSteamID steamID);
+
+            return steamID.m_SteamID;
+        }
+    }
+}
