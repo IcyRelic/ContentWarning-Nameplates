@@ -1,4 +1,5 @@
-﻿using BepInEx;
+﻿using System;
+using BepInEx;
 using Steamworks;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +18,7 @@ namespace Nameplates
     {
         public const string ModGuid = "com.icyrelic.nameplates";
         public const string ModName = "Nameplates";
-        public const string ModVersion = "1.0.1";
+        public const string ModVersion = "1.0.2";
         
         private List<Nameplate> nameplates = new List<Nameplate>();
 
@@ -72,7 +73,7 @@ namespace Nameplates
             
             tmp = this.gameObject.AddComponent<TextMeshPro>();
             tmp.fontSize = 1.5f;
-            tmp.color = Color.green;
+            tmp.color = NameplateConfig.ColourBasedOnHealth ? Color.green : Color.white;
             tmp.alignment = TextAlignmentOptions.Center;
             
             gameObject.transform.SetParent(data.player.refs.cameraPos);
@@ -80,12 +81,15 @@ namespace Nameplates
 
         void Update()
         {
-            tmp.text = data.player.Photon().NickName;
-
-            if (NameplateConfig.ColourBasedOnHealth)
-            {
-                tmp.color = Color.Lerp(Color.red, Color.green, data.player.data.health / data.pmaxHealth);
-            }
+            var currentText = $"{data.player.Photon().NickName}";
+            
+            if (NameplateConfig.ShowHealth) currentText += $" ({Math.Round((data.player.data.health / data.pmaxHealth)*100)}%)";
+            // Leaving space here in case of adding another currentText modifier
+            
+            if (NameplateConfig.ColourBasedOnHealth) tmp.color = Color.Lerp(Color.red, Color.green, data.player.data.health / data.pmaxHealth); else tmp.color = Color.white;
+            // Leaving space here in case of adding another modifier
+            
+            tmp.text = currentText;
             
             Vector3 pos = data.player.refs.cameraPos.position;
             pos.y += 0.5f;
