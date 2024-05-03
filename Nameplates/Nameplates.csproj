@@ -6,10 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="Lib\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Reference Include="0Harmony">
       <HintPath>Lib\0Harmony.dll</HintPath>
     </Reference>
@@ -43,6 +39,13 @@
     <Reference Include="Zorro.Core.Runtime">
       <HintPath>Lib\Zorro.Core.Runtime.dll</HintPath>
     </Reference>
+    <Reference Include="Zorro.Settings.Runtime">
+      <HintPath>Lib\Zorro.Settings.Runtime.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommanderCat101.ContentSettings" Version="1.2.2" />
   </ItemGroup>
 
 </Project>

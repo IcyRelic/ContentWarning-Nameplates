@@ -2,6 +2,8 @@
 using Steamworks;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using Nameplates.Settings;
 using TMPro;
 using UnityEngine;
 
@@ -10,6 +12,7 @@ namespace Nameplates
 {
     [ContentWarningPlugin(ModGuid, ModVersion, true)]
     [BepInPlugin(ModGuid, ModName, ModVersion)]
+    [BepInDependency(ContentSettings.MyPluginInfo.PLUGIN_GUID)]
     public class NameplateMod : BaseUnityPlugin
     {
         public const string ModGuid = "com.icyrelic.nameplates";
@@ -39,6 +42,11 @@ namespace Nameplates
             NameplateData data = go.AddComponent<NameplateData>();
             data.player = p;
             data.steamId = p.Photon().SteamID();
+            var maxHealthField = data.player.data.GetType().GetField("maxHealth", BindingFlags.Static | BindingFlags.Public);
+            
+            if(maxHealthField == null)
+                return;
+            data.pmaxHealth = (float)maxHealthField.GetValue(null);
 
             nameplates.Add(go.AddComponent<Nameplate>());
         }
@@ -49,6 +57,7 @@ namespace Nameplates
     {
         public Player player;
         public ulong steamId;
+        public float pmaxHealth;
     }
 
     internal class Nameplate : MonoBehaviour
@@ -60,16 +69,23 @@ namespace Nameplates
         void Awake()
         {
             data = gameObject.GetComponent<NameplateData>();
+            
             tmp = this.gameObject.AddComponent<TextMeshPro>();
             tmp.fontSize = 1.5f;
-            tmp.color = Color.white;    
+            tmp.color = Color.green;
             tmp.alignment = TextAlignmentOptions.Center;
+            
             gameObject.transform.SetParent(data.player.refs.cameraPos);
         }
 
         void Update()
         {
             tmp.text = data.player.Photon().NickName;
+
+            if (NameplateConfig.ColourBasedOnHealth)
+            {
+                tmp.color = Color.Lerp(Color.red, Color.green, data.player.data.health / data.pmaxHealth);
+            }
             
             Vector3 pos = data.player.refs.cameraPos.position;
             pos.y += 0.5f;
